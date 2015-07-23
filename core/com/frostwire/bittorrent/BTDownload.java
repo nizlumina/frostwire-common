@@ -68,7 +68,6 @@ public final class BTDownload extends TorrentAlertAdapter implements BittorrentD
     private Set<File> incompleteFilesToRemove;
 
     private long lastSaveResumeTime;
-    private final PaymentOptions paymentOptions;
 
     public BTDownload(BTEngine engine, TorrentHandle th) {
         super(th);
@@ -81,7 +80,6 @@ public final class BTDownload extends TorrentAlertAdapter implements BittorrentD
         this.parts = ti != null ? new File(savePath, "." + ti.getInfoHash() + ".parts") : null;
 
         this.extra = createExtra();
-        this.paymentOptions = loadPaymentOptions(ti);
         engine.getSession().addListener(this);
     }
 
@@ -116,10 +114,6 @@ public final class BTDownload extends TorrentAlertAdapter implements BittorrentD
     public long getSize() {
         TorrentInfo ti = th.getTorrentInfo();
         return ti != null ? ti.getTotalSize() : 0;
-    }
-
-    public PaymentOptions getPaymentOptions() {
-        return paymentOptions;
     }
 
     public boolean isPaused() {
@@ -609,15 +603,6 @@ public final class BTDownload extends TorrentAlertAdapter implements BittorrentD
 
     public File partsFile() {
         return parts;
-    }
-
-    private PaymentOptions loadPaymentOptions(TorrentInfo ti) {
-        try {
-            BTInfoAdditionalMetadataHolder holder = new BTInfoAdditionalMetadataHolder(ti, getDisplayName());
-            return holder.getPaymentOptions();
-        } catch (RuntimeException e) {
-            return null;
-        }
     }
 
     private void serializeResumeData(SaveResumeDataAlert alert) {

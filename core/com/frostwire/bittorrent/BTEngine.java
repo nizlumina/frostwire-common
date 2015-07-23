@@ -25,8 +25,6 @@ import com.frostwire.jlibtorrent.alerts.TorrentAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentPausedAlert;
 import com.frostwire.jlibtorrent.swig.*;
 import com.frostwire.logging.Logger;
-import com.frostwire.search.torrent.TorrentCrawledSearchResult;
-import com.frostwire.util.OSUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -597,40 +595,6 @@ public final class BTEngine {
         }
     }
 
-    public void download(TorrentCrawledSearchResult sr, File saveDir) {
-        if (session == null) {
-            return;
-        }
-
-        saveDir = setupSaveDir(saveDir);
-        if (saveDir == null) {
-            return;
-        }
-
-        TorrentInfo ti = sr.getTorrentInfo();
-        int fileIndex = sr.getFileIndex();
-
-        TorrentHandle th = downloader.find(ti.getInfoHash());
-        boolean exists = th != null;
-
-        if (th != null) {
-            Priority[] priorities = th.getFilePriorities();
-            if (priorities[fileIndex] == Priority.IGNORE) {
-                priorities[fileIndex] = Priority.NORMAL;
-                downloader.download(ti, saveDir, priorities, null);
-            }
-        } else {
-            Priority[] priorities = Priority.array(Priority.IGNORE, ti.getNumFiles());
-            priorities[fileIndex] = Priority.NORMAL;
-            downloader.download(ti, saveDir, priorities, null);
-        }
-
-        if (!exists) {
-            File torrent = saveTorrent(ti);
-            saveResumeTorrent(torrent);
-        }
-    }
-
     public byte[] fetchMagnet(String uri, long timeout) {
         if (session == null) {
             return null;
@@ -707,7 +671,7 @@ public final class BTEngine {
             if (name == null || name.length() == 0) {
                 name = ti.getInfoHash().toString();
             }
-            name = OSUtils.escapeFilename(name);
+            name = escapeFilename(name);
 
             torrentFile = new File(ctx.torrentsDir, name + ".torrent");
             byte[] arr = ti.toEntry().bencode();
@@ -1039,5 +1003,14 @@ public final class BTEngine {
         SessionSettings s = getSettings();
         s.setMaxPeerlistSize(limit);
         saveSettings(s);
+    }
+
+    //--------------------------------------------------
+    // Util methods
+    //--------------------------------------------------
+
+    //Only used for torrent metafile filename. Doesn't affect final torrent data.
+    public static String escapeFilename(String s) {
+        return s.replaceAll("[\\\\/:*?\"<>|\\[\\]]+", "_");
     }
 }
