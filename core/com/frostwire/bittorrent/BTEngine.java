@@ -632,8 +632,6 @@ public final class BTEngine {
             }
         }
 
-        migrateVuzeDownloads();
-
         runNextRestoreDownloadTask();
     }
 
@@ -729,47 +727,6 @@ public final class BTEngine {
             }
         } catch (Throwable e) {
             LOG.error("Unable to create and/or notify the new download", e);
-        }
-    }
-
-    private void migrateVuzeDownloads() {
-        try {
-            File dir = new File(ctx.homeDir.getParent(), "azureus");
-            File file = new File(dir, "downloads.config");
-
-            if (file.exists()) {
-                Entry configEntry = Entry.bdecode(file);
-                List<Entry> downloads = configEntry.dictionary().get("downloads").list();
-
-                for (Entry d : downloads) {
-                    try {
-                        Map<String, Entry> map = d.dictionary();
-                        File saveDir = new File(map.get("save_dir").string());
-                        File torrent = new File(map.get("torrent").string());
-                        ArrayList<Entry> filePriorities = map.get("file_priorities").list();
-
-                        Priority[] priorities = Priority.array(Priority.IGNORE, filePriorities.size());
-                        for (int i = 0; i < filePriorities.size(); i++) {
-                            long p = filePriorities.get(i).integer();
-                            if (p != 0) {
-                                priorities[i] = Priority.NORMAL;
-                            }
-                        }
-
-                        if (torrent.exists() && saveDir.exists()) {
-                            LOG.info("Restored old vuze download: " + torrent);
-                            restoreDownloadsQueue.add(new RestoreDownloadTask(torrent, saveDir, priorities, null));
-                            saveResumeTorrent(torrent);
-                        }
-                    } catch (Throwable e) {
-                        LOG.error("Error restoring vuze torrent download", e);
-                    }
-                }
-
-                file.delete();
-            }
-        } catch (Throwable e) {
-            LOG.error("Error migrating old vuze downloads", e);
         }
     }
 
